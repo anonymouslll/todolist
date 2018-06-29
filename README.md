@@ -2,7 +2,8 @@ demo网址：http://lizicheng.top
 
 
 运行方法：
-	配置nodejs环境：https://nodejs.org/en/download/，下载对应版本，安装
+	配置nodejs环境：https://nodejs.org/en/download/
+	下载对应版本，安装
 		
 	打开cmd,切换到本项目目录	
 	node install
