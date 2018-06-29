@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>TO DO LIST</title>
+
+    <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../assets/css/signin.css" rel="stylesheet">
+    <link href="../assets/css/starter-template.css" rel="stylesheet">
+    <style> [v-cloak] { display: none; } </style>
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top"  v-show="online" v-cloak>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault"aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+      </button>
+      <a class="navbar-brand" href="#">TO DO LIST</a>
+     
+      <div class="collapse  navbar-collapse" id="navbarsExampleDefault">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="#" @click="logout">注销</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#" @click="turnonmode(['todaymode']),getdatas()">我的一天</a>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle"  id="dropdown01" data-toggle="dropdown" aria-haspopup="true" href="#" aria-expanded="false">任务分类</a>
+              <div class="dropdown-menu" aria-labelledby="dropdown01">
+                <a class="dropdown-item" href="#" @click="turnonmode(['allmode']),getdatas()">全部任务</a>
+                <a class="dropdown-item" href="#"  v-for="catalog in catalogs" v-if="catalog.userid===nowuser.id" @click="nowcatalog=catalog,turnonmode(['catalogmode']),getdatas()">
+                  {{catalog.name}}({{catalog.length}})&nbsp;&nbsp;&nbsp;&nbsp;
+                  <label @click="nowcatalog=catalog,removeCatalog(),getdatas()" style="font-size:xx-small;">删除</label>
+                </a>
+              </div>
+            </li> 
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle"  id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" href="#">排序方式</a>
+              <div class="dropdown-menu" aria-labelledby="dropdown01">
+                <a class="dropdown-item" @click="turnonorder(['name']),getdatas()" href="#">名称</a>
+                <a class="dropdown-item" @click="turnonorder(['createtime']),getdatas()" href="#">创建时间</a>
+                <a class="dropdown-item" @click="turnonorder(['endtime']),getdatas()" href="#">到期时间</a>
+              </div>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle"  id="dropdown01" data-toggle="dropdown" aria-haspopup="true" href="#" aria-expanded="false">新建</a>
+                <div class="dropdown-menu" aria-labelledby="dropdown01">
+                  <a class="dropdown-item" href="#" @click="addcatalogmask=true">类别</a>
+                  <a class="dropdown-item" href="#" @click="addTask()" v-show="models['catalogmode']" data-toggle="modal" data-target="#myModal">任务</a>
+                </div>
+            </li> 
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle"  id="dropdown01" data-toggle="dropdown" aria-haspopup="true" href="#" aria-expanded="false">显示样式</a>
+                <div class="dropdown-menu" aria-labelledby="dropdown01">
+                  <a class="dropdown-item" @click="turnonshowmodel(['default']),getshowstyle()" href="#">默认样式</a>
+                  <a class="dropdown-item" @click="turnonshowmodel(['secondary']),getshowstyle()" href="#">浅灰样式</a>
+                  <a class="dropdown-item" @click="turnonshowmodel(['info']),getshowstyle()" href="#">浅蓝样式</a>
+                </div>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" v-show="showcompleted" @click="showcompleted=false" href="#">隐藏已完成</a>
+              <a class="nav-link" v-show="!showcompleted" @click="showcompleted=true" href="#">显示已完成</a>
+            </li>
+            <li class="nav-item" v-show="addcatalogmask">
+                <input  type="text" v-model="newcatalog" placeholder="请输入新建类别名">
+                <button class="btn btn-xs" @click="addCatalog">提交</button>
+            </li>
+        </ul>
+        <div class="form-inline my-2 my-lg-0">
+          <input class="form-control mr-sm-2" type="text" placeholder="请输入搜索内容" aria-label="Search" v-model="searchstring">
+          <button class="btn btn-outline-success my-2 my-sm-0" type="submit" @click="turnonmode(['searchmode']),getdatas()">搜索</button>
+        </div>
+      </div>
+   
+    </nav>
+
+    <main role="main" class="container" v-show="online" v-cloak>
+        <div class="album py-5 bg-light">
+            <div class="container">
+    
+              <div class="row">
+                <!-- 显示区 -->
+                <div class="col-md-4" v-for="task in showdatas" v-if="showcompleted || !task.completed">  
+                  <!-- 确保当 showcompleted=true时  已完成的任务过不去 -->
+                  <div :class="showstyle">
+                    <div class="card-body">
+                      <p class="card-text"  :class="{'completed':task.completed}">{{task.content}}</p>
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-sm btn-outline-secondary" v-show="task.completed" @click="task.completed=false">取消完成</button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary" v-show="!task.completed" @click="task.completed=true">完成</button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#myModal" v-show="!task.completed" @click="nowtask=task,editTask()">编辑</button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary" @click="nowtask=task,removeTask(),getdatas()">删除</button>
+                        </div>
+                        <ul class="navbar-nav">
+                          <li><small class="text-muted">到期时间:{{task.endmonth+"/"+task.endday+"/"+task.endyear}}</small></li>
+                          <li><small class="text-muted">创建于:{{task.createtime}}</small></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+    </main>
+    <div class="container text-center form-signin" v-show="!online">
+            <h1 class="h3 mb-3 font-weight-normal">请登录您的账号</h1>
+            <input type="email" id="inputEmail" class="form-control" placeholder="邮箱地址" required autofocus v-model="username">
+            <input type="password" id="inputPassword" class="form-control" placeholder="密码" required v-model="userpwd">
+            <button class="btn btn-lg btn-primary btn-block" type="submit" @click="login">登录</button>
+            <small class="text-muted" v-show="passwderr">用户名或密码错误</small>
+            <p class="mt-5 mb-3 text-muted">&copy; 2018-2019</p>
+    </div>
+
+    <!-- 编辑框 -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"  aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <label>到期时间：</label>
+            <input class="form-control" style="width:80px;" v-model="endyear">年
+            <input class="form-control" style="width:80px;" v-model="endmonth">月
+            <input class="form-control" style="width:80px;" v-model="endday">日
+          </div>
+          <div class="form-group">
+            <label>内容：</label>
+            <textarea class="form-control" v-model="content" rows="10"></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal" @click="editable=false">关闭
+            </button>
+            <button type="button" class="btn btn-primary" data-dismiss="modal" @click="saveTask(),getdatas()">
+             保存 
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+    <script src="../assets/js/storage.js"></script>
+    <script src="../assets/js/note.js"></script>
+  </body>
+</html>
